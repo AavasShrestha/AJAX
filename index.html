@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Management with jQuery AJAX</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+</head>
+<body>
+
+<div class="container">
+    <h1 class="mt-5">Employee Management</h1>
+
+    <div id="message" class="alert alert-info" style="display: none;"></div>
+
+    <!-- Form for Adding/Editing Employees -->
+    <form id="employeeForm">
+        <div class="form-group">
+            <label for="employeeId">Employee ID</label>
+            <input type="text" class="form-control" id="employeeId" disabled>
+        </div>
+        <div class="form-group">
+            <label for="employeeName">Employee Name</label>
+            <input type="text" class="form-control" id="employeeName" required>
+        </div>
+        <div class="form-group">
+            <label for="position">Position</label>
+            <input type="text" class="form-control" id="position" required>
+        </div>
+        <button type="submit" class="btn btn-primary" id="saveBtn">Save</button>
+    </form>
+
+    <!-- Employee Table -->
+    <h2 class="mt-5">Employee List</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Employee ID</th>
+                <th>Employee Name</th>
+                <th>Position</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="employeeTableBody">
+            <!-- Data will be populated using AJAX -->
+        </tbody>
+    </table>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        // Set the base URL of your API
+        var baseUrl = "https://localhost:7133";
+
+        // Fetch all employees on page load
+        loadEmployees();
+
+        // Function to fetch all employees
+        function loadEmployees() {
+            $.ajax({
+                url: baseUrl + "/api/Employees",
+                type: "GET",
+                success: function (data) {
+                    let rows = '';
+                    data.forEach(employee => {
+                        rows += `
+                            <tr>
+                                <td>${employee.id}</td>
+                                <td>${employee.name}</td>
+                                <td>${employee.position}</td>
+                                <td>
+                                    <button class="btn btn-warning btn-sm" onclick="editEmployee(${employee.id})">Edit</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteEmployee(${employee.id})">Delete</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    $('#employeeTableBody').html(rows);
+                },
+                error: function () {
+                    $('#message').text('Error loading employees').show();
+                }
+            });
+        }
+
+        // Add or Update employee
+        $('#employeeForm').submit(function (e) {
+            e.preventDefault();
+            let employeeId = $('#employeeId').val();
+            const employeeName = $('#employeeName').val();
+            const position = $('#position').val();
+            const method = employeeId ? "PUT" : "POST";
+            const url = employeeId ? baseUrl + `/api/Employees/${employeeId}` : baseUrl + "/api/Employees";
+
+            $.ajax({
+                url: url,
+                type: method,
+                contentType: "application/json",
+                data: JSON.stringify({ name: employeeName, position: position }),
+                success: function () {
+                    $('#message').text(employeeId ? 'Employee updated successfully' : 'Employee added successfully').show();
+                    loadEmployees();
+                    resetForm();
+                },
+                error: function () {
+                    $('#message').text('Error saving employee').show();
+                }
+            });
+        });
+
+        // Edit employee
+        window.editEmployee = function (id) {
+            $.ajax({
+                url: baseUrl + `/api/Employees/${id}`,
+                type: "GET",
+                success: function (data) {
+                    $('#employeeId').val(data.id);
+                    $('#employeeName').val(data.name);
+                    $('#position').val(data.position);
+                    $('#saveBtn').text('Update');
+                }
+            });
+        }
+
+        // Delete employee
+        window.deleteEmployee = function (id) {
+            $.ajax({
+                url: baseUrl + `/api/Employees/${id}`,
+                type: "DELETE",
+                success: function () {
+                    $('#message').text('Employee deleted successfully').show();
+                    loadEmployees();
+                }
+            });
+        }
+
+        // Reset the form after saving or editing
+        function resetForm() {
+            $('#employeeId').val('');
+            $('#employeeName').val('');
+            $('#position').val('');
+            $('#saveBtn').text('Save');
+        }
+    });
+</script>
+
+</body>
+</html>
